@@ -40,6 +40,6 @@ def get_schedule_by_day(day: str):
     return rows
 
 
-if name == "__main__":
+if __name__ == "__main__":
     init_db()
     print("База данных SQLite успешно создана и заполнена!")
