@@ -73,6 +73,6 @@ async def external_event(request: Request):
     return {"status": "event_delivered"}
 
 
-if name == "__main__":
+if __name__ == "__main__":
     # Запуск локально для тестов
     uvicorn.run("raspisanie.py:app", host="0.0.0.0", port=10000, reload=True)
