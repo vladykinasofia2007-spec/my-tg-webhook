@@ -10,13 +10,19 @@ CHAT_ID = "1333034189"
 
 # Функция, которая отправляет сообщение в твой Telegram
 def send_to_telegram(message_text):
-    url = f"[https://api.telegram.org/bot](https://api.telegram.org/bot){TELEGRAM_TOKEN}/sendMessage"
+    # Убедись, что твои CHAT_ID и TELEGRAM_TOKEN скопированы сюда правильно!
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {
-        "chat_id": CHAT_ID,
+        "1333034189": CHAT_ID,
         "text": message_text
     }
-    # Отправляем запрос в Telegram
-    requests.post(url, json=payload)
+    try:
+        response = requests.post(url, json=payload)
+        print(f"Telegram response: {response.status_code} - {response.text}")
+        return response
+    except Exception as e:
+        print(f"Ошибка при отправке в Telegram: {e}")
+        return None
 
 
 # Создаем "точку ожидания" для вебхука. Наш адрес будет заканчиваться на /webhook
