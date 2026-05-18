@@ -126,3 +126,34 @@ async def external_event(request: Request):
 @app.get("/")
 def read_root():
     return {"status": "FastAPI is running successfully!"}
+
+
+# Секретный ключ для защиты от спама (придумай любую строчку)
+CRON_SECRET_TOKEN = "guap_practice_secret_2026"
+
+@app.get("/send-morning-schedule")
+async def send_morning_schedule(token: str = None):
+    # Проверяем, что запрос пришел именно от нашего будильника
+    if token != CRON_SECRET_TOKEN:
+        return {"status": "error", "message": "Unauthorized"}
+        
+    day = get_russian_day()       # Определяем текущий день недели
+    parity = get_current_parity() # Определяем чётность недели
+    
+    pairs = get_schedule_by_day(day, parity)
+    
+    if not pairs:
+        message_text = f"☀️ Доброе утро! Сегодня {day} ({parity} неделя).\nПар нет, можно отдыхать! 🎉"
+    else:
+        message_text = f"☀️ Доброе утро! Твое расписание на сегодня ({day}, {parity} неделя):\n\n"
+        for time, subject, p_type in pairs:
+            note = " (каждую неделю)" if p_type == "Обе" else ""
+            message_text += f"⏰ {time} — {subject}{note}\n"
+            
+    try:
+        # Отправляем сообщение в твой личный чат Telegram
+        await bot.send_message(chat_id=CHAT_ID, text=message_text)
+        return {"status": "success", "message": "Morning schedule sent"}
+    except Exception as e:
+        logging.error(f"Ошибка утренней отправки: {e}")
+        return {"status": "error", "message": str(e)}
