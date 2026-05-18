@@ -75,4 +75,4 @@ async def external_event(request: Request):
 
 if name == "__main__":
     # Запуск локально для тестов
-    uvicorn.run("main.py:app", host="0.0.0.0", port=10000, reload=True)
+    uvicorn.run("raspisanie.py:app", host="0.0.0.0", port=10000, reload=True)
