@@ -56,7 +56,7 @@ async def cmd_start(message: types.Message):
         reply_markup=menu_keyboard
     )
 
-# Улучшенная кнопка расписания на сегодня
+# Кнопка расписания на сегодня
 @dp.message(lambda message: message.text == "📅 Расписание на сегодня")
 async def get_today_schedule(message: types.Message):
     day = get_russian_day()       # Авто-определение дня (например, Вторник)
@@ -80,7 +80,7 @@ async def get_today_schedule(message: types.Message):
 @dp.message(lambda message: message.text == "📝 Все пары")
 async def get_all_schedule(message: types.Message):
     # Показываем отдельно обе недели, чтобы пользователю было удобно смотреть наперед
-    all_days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница"]
+    all_days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"]
     
     response_text = "📋 Полное расписание по неделям:\n\n"
     
