@@ -1,22 +1,24 @@
+import logging
 from fastapi import FastAPI, Request
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-import uvicorn
 from database import init_db, get_schedule_by_day
 
-# Токены и конфигурация
-TELEGRAM_TOKEN = "8995925816:AAGKPuDuRdEgtlMycIkW84ctaje2KYhEX1o"
-CHAT_ID = 1333034189  # Твой ID для системных уведомлений
+# Включаем логирование, чтобы видеть всё в панели Render
+logging.basicConfig(level=logging.INFO)
 
-# Инициализируем FastAPI, Bot и Dispatcher (aiogram)
+TELEGRAM_TOKEN = "8995925816:AAGKPuDuRdEgtlMycIkW84ctaje2KYhEX1o"
+CHAT_ID = 1333034189
+
+# Инициализируем FastAPI, Bot и современный Dispatcher
 app = FastAPI()
 bot = Bot(token=TELEGRAM_TOKEN)
 dp = Dispatcher()
 
-# Инициализируем базу данных при старте
+# Принудительно создаем и заполняем базу данных SQLite при импорте/старте
 init_db()
 
-# Создаем клавиатуру для бота
+# Создаем красивую клавиатуру для aiogram 3.x
 menu_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📅 Расписание на сегодня")],
@@ -25,54 +27,71 @@ menu_keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-
-# Обычный обработчик команды /start внутри Telegram
-@dp.message(commands=["start"])
+# Исправленный обработчик команды /start для aiogram 3.x (через магический фильтр)
+@dp.message(lambda message: message.text == "/start")
 async def cmd_start(message: types.Message):
     await message.answer(
-        f"Привет, {message.from_user.first_name}! Я бот твоей системы расписания.",
+        f"Привет, {message.from_user.first_name}! Бот системы расписания ГУАП готов к работе.",
         reply_markup=menu_keyboard
     )
-
 
 # Обработчик кнопки расписания
 @dp.message(lambda message: message.text == "📅 Расписание на сегодня")
 async def get_today_schedule(message: types.Message):
-    # Для примера возьмем Понедельник, в реальном коде можно использовать datetime
-    day = "Понедельник"
+    day = "Понедельник"  # Тестовый день
     pairs = get_schedule_by_day(day)
-
+    
     if not pairs:
-        await message.answer(f"🎉 На {day} пар нет, можно отдыхать!")
+        await message.answer(f"🎉 На {day} пар нет!")
         return
-
-    response_text = f"📚 Расписание на {day}:\n"
+        
+    response_text = f"📚 Расписание на {day}:\n\n"
     for time, subject in pairs:
         response_text += f"⏰ {time} — {subject}\n"
-
+    
     await message.answer(response_text)
 
+# Кнопка "Все пары"
+@dp.message(lambda message: message.text == "📝 Все пары")
+async def get_all_schedule(message: types.Message):
+    all_days = ["Понедельник", "Вторник", "Среда"]
+    response_text = "📋 Полное расписание:\n\n"
+    
+    for day in all_days:
+        pairs = get_schedule_by_day(day)
+        if pairs:
+            response_text += f"🔹 {day}:\n"
+            for time, subject in pairs:
+                response_text += f"  {time} — {subject}\n"
+            response_text += "\n"
+            
+    await message.answer(response_text)
 
-# ВЕБХУК 1: Для самого Telegram (чтобы aiogram получал клики по кнопкам в облаке)
+# Хэндлер вебхука от Telegram
 @app.post("/tg-webhook")
 async def telegram_webhook(request: Request):
-    updates = await request.json()
-    update = types.Update(**updates)
-    await dp.feed_update(bot, update)
+    try:
+        updates = await request.json()
+        update = types.Update(**updates)
+        await dp.feed_update(bot, update)
+    except Exception as e:
+        logging.error(f"Ошибка обработки вебхука: {e}")
     return {"status": "ok"}
 
-
-# ВЕБХУК 2: Для генерации внешних событий (как требует задание: HTTP-запросы для генерации событий)
+# Хэндлер генерации внешних событий (для индивидуального задания)
 @app.post("/generate-event")
 async def external_event(request: Request):
     payload = await request.json()
-    event_message = payload.get("event", "Произошло неопознанное событие")
-
-    # Отправляем экстренное уведомление в Telegram через бота
-    await bot.send_message(chat_id=CHAT_ID, text=f"⚠️ Внешнее системное уведомление:\n{event_message}")
+    event_message = payload.get("event", "Произошло системное событие")
+    
+    try:
+        await bot.send_message(chat_id=CHAT_ID, text=f"⚠️ Системное уведомление:\n{event_message}")
+    except Exception as e:
+        logging.error(f"Ошибка отправки сообщения: {e}")
+        
     return {"status": "event_delivered"}
 
-
-if __name__ == "__main__":
-    # Запуск локально для тестов
-    uvicorn.run("raspisanie.py:app", host="0.0.0.0", port=10000, reload=True)
+# Короткий проверочный роут, чтобы проверять сервер в браузере
+@app.get("/")
+def read_root():
+    return {"status": "FastAPI is running successfully!"}
