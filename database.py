@@ -1,11 +1,10 @@
 import sqlite3
 
-
 def init_db():
     conn = sqlite3.connect("schedule.db")
     cursor = conn.cursor()
-
-    # Создаем таблицу расписания
+    
+    # Создаем таблицу, если её нет
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS schedule (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -14,22 +13,21 @@ def init_db():
             subject TEXT NOT NULL
         )
     """)
-
-    # Заполняем тестовыми данными, если таблица пустая
-    cursor.execute("SELECT COUNT(*) FROM schedule")
-    if cursor.fetchone()[0] == 0:
-        test_data = [
-            ("Понедельник", "09:30", "Физика (Лекция)"),
-            ("Понедельник", "11:10", "История России (Практика)"),
-            ("Вторник", "11:10", "Философия (Лекция"),
-            ("Вторник", "15:10", "Математический анализ (Практика)")
-            ("Вторник", "17:00", "Математический анализ (Практика)")
-            ("Среда", "9:30", "Физика (Лабораторная)")
-        ]
-        cursor.executemany("INSERT INTO schedule (day_of_week, pair_time, subject) VALUES (?, ?, ?)", test_data)
-        conn.commit()
+    
+    # Очищаем старые данные, чтобы при перезапусках они не дублировались
+    cursor.execute("DELETE FROM schedule")
+    
+    # Твои реальные пары из ГУАП (каждый кортеж строго разделен запятой!)
+    test_data = [
+        ("Вторник", "15:10", "Математический анализ (Практика)"),
+        ("Вторник", "17:00", "Математический анализ (Практика)"),
+        ("Понедельник", "09:30", "Информатика (Лекция)"),
+        ("Среда", "11:10", "Физика (Лабораторная)")
+    ]
+    
+    cursor.executemany("INSERT INTO schedule (day_of_week, pair_time, subject) VALUES (?, ?, ?)", test_data)
+    conn.commit()
     conn.close()
-
 
 def get_schedule_by_day(day: str):
     conn = sqlite3.connect("schedule.db")
@@ -39,7 +37,6 @@ def get_schedule_by_day(day: str):
     conn.close()
     return rows
 
-
 if __name__ == "__main__":
     init_db()
-    print("База данных SQLite успешно создана и заполнена!")
+    print("База данных SQLite успешно создана!")
