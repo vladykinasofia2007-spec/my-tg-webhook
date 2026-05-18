@@ -3,7 +3,7 @@ import datetime
 from fastapi import FastAPI, Request
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-from database import init_db, get_schedule_by_day
+from database import init_db, get_schedule_by_day, add_user, get_all_users
 
 logging.basicConfig(level=logging.INFO)
 
@@ -51,8 +51,9 @@ def get_russian_day():
 
 @dp.message(lambda message: message.text == "/start")
 async def cmd_start(message: types.Message):
+    add_user(message.chat.id)
     await message.answer(
-        f"Привет, {message.from_user.first_name}! Это бот расписания ГУАП!",
+        f"Привет, {message.from_user.first_name}! Ты успешно подписан на расписание и важные уведомления группы 4542.",
         reply_markup=menu_keyboard
     )
 
@@ -117,11 +118,13 @@ async def telegram_webhook(request: Request):
 async def external_event(request: Request):
     payload = await request.json()
     event_message = payload.get("event", "Произошло системное событие")
-    try:
-        await bot.send_message(chat_id=CHAT_ID, text=f"⚠️ Системное уведомление:\n{event_message}")
-    except Exception as e:
-        logging.error(f"Ошибка отправки сообщения: {e}")
-    return {"status": "event_delivered"}
+    all_users = get_all_users()
+    for chat_id in all_users:
+        try:
+            await bot.send_message(chat_id=chat_id, text=f"⚠️ Важное уведомление:\n{event_message}")
+        except Exception as e:
+            logging.error(f"Ошибка отправки сообщения: {e}")
+    return {"status": "event_delivered", "notified_users": len(all_users)}
 
 @app.get("/")
 def read_root():
