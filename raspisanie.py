@@ -1,51 +1,78 @@
-from flask import Flask, request, jsonify
-import requests
+from fastapi import FastAPI, Request
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+import uvicorn
+from database import init_db, get_schedule_by_day
 
-app = Flask(__name__)
-
-# === НАСТРОЙКИ (Вставь сюда свои данные) ===
+# Токены и конфигурация
 TELEGRAM_TOKEN = "8995925816:AAGKPuDuRdEgtlMycIkW84ctaje2KYhEX1o"
-CHAT_ID = "1333034189"
+CHAT_ID = 1333034189  # Твой ID для системных уведомлений
+
+# Инициализируем FastAPI, Bot и Dispatcher (aiogram)
+app = FastAPI()
+bot = Bot(token=TELEGRAM_TOKEN)
+dp = Dispatcher()
+
+# Инициализируем базу данных при старте
+init_db()
+
+# Создаем клавиатуру для бота
+menu_keyboard = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="📅 Расписание на сегодня")],
+        [KeyboardButton(text="📝 Все пары")]
+    ],
+    resize_keyboard=True
+)
 
 
-# Функция, которая отправляет сообщение в твой Telegram
-def send_to_telegram(message_text):
-    TELEGRAM_TOKEN = "8995925816:AAGKPuDuRdEgtlMycIkW84ctaje2KYhEX1o"
-    
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    
-    payload = {
-        "chat_id": 1333034189,  # Твой ID цифрами без кавычек
-        "text": message_text
-    }
-    
-    try:
-        response = requests.post(url, json=payload)
-        print(f"Telegram response: {response.status_code} - {response.text}")
-        return response
-    except Exception as e:
-        print(f"Ошибка при отправке в Telegram: {e}")
-        return None
+# Обычный обработчик команды /start внутри Telegram
+@dp.message(commands=["start"])
+async def cmd_start(message: types.Message):
+    await message.answer(
+        f"Привет, {message.from_user.first_name}! Я бот твоей системы расписания.",
+        reply_markup=menu_keyboard
+    )
 
 
-# Создаем "точку ожидания" для вебхука. Наш адрес будет заканчиваться на /webhook
-@app.route('/webhook', methods=['POST'])
-def receive_webhook():
-    data = request.get_json()
-    print(f"Получены данные: {data}")
-    
-    # Извлекаем текст события, если он есть
-    event_text = data.get('event', 'Без описания')
-    
-    # Формируем текст для Telegram
-    text_to_send = f"⚠️ Новое событие!\n{event_text}"
-    
-    # ВНИМАНИЕ: Вызываем отправку
-    send_to_telegram(text_to_send)
-    
-    return {"status": "success"}, 200
+# Обработчик кнопки расписания
+@dp.message(lambda message: message.text == "📅 Расписание на сегодня")
+async def get_today_schedule(message: types.Message):
+    # Для примера возьмем Понедельник, в реальном коде можно использовать datetime
+    day = "Понедельник"
+    pairs = get_schedule_by_day(day)
+
+    if not pairs:
+        await message.answer(f"🎉 На {day} пар нет, можно отдыхать!")
+        return
+
+    response_text = f"📚 Расписание на {day}:\n"
+    for time, subject in pairs:
+        response_text += f"⏰ {time} — {subject}\n"
+
+    await message.answer(response_text)
 
 
-# Запуск нашего мини-сервера на порту 5000
-if __name__ == '__main__':
-    app.run(port=5000)
+# ВЕБХУК 1: Для самого Telegram (чтобы aiogram получал клики по кнопкам в облаке)
+@app.post("/tg-webhook")
+async def telegram_webhook(request: Request):
+    updates = await request.json()
+    update = types.Update(**updates)
+    await dp.feed_update(bot, update)
+    return {"status": "ok"}
+
+
+# ВЕБХУК 2: Для генерации внешних событий (как требует задание: HTTP-запросы для генерации событий)
+@app.post("/generate-event")
+async def external_event(request: Request):
+    payload = await request.json()
+    event_message = payload.get("event", "Произошло неопознанное событие")
+
+    # Отправляем экстренное уведомление в Telegram через бота
+    await bot.send_message(chat_id=CHAT_ID, text=f"⚠️ Внешнее системное уведомление:\n{event_message}")
+    return {"status": "event_delivered"}
+
+
+if name == "__main__":
+    # Запуск локально для тестов
+    uvicorn.run("main.py:app", host="0.0.0.0", port=10000, reload=True)
