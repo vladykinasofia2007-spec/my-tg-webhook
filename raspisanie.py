@@ -52,7 +52,7 @@ def get_russian_day():
 @dp.message(lambda message: message.text == "/start")
 async def cmd_start(message: types.Message):
     await message.answer(
-        f"Привет, {message.from_user.first_name}! Бот расписания ГУАП с учетом четности недель готов.",
+        f"Привет, {message.from_user.first_name}! Это бот расписания ГУАП!",
         reply_markup=menu_keyboard
     )
 
