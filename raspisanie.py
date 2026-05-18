@@ -10,12 +10,15 @@ CHAT_ID = "1333034189"
 
 # Функция, которая отправляет сообщение в твой Telegram
 def send_to_telegram(message_text):
-    # Убедись, что твои CHAT_ID и TELEGRAM_TOKEN скопированы сюда правильно!
+    TELEGRAM_TOKEN = "8995925816:AAGKPuDuRdEgtlMycIkW84ctaje2KYhEX1o"
+    
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    
     payload = {
-        "CHAT_ID": 1333034189,
+        "chat_id": 1333034189,  # Твой ID цифрами без кавычек
         "text": message_text
     }
+    
     try:
         response = requests.post(url, json=payload)
         print(f"Telegram response: {response.status_code} - {response.text}")
@@ -28,19 +31,19 @@ def send_to_telegram(message_text):
 # Создаем "точку ожидания" для вебхука. Наш адрес будет заканчиваться на /webhook
 @app.route('/webhook', methods=['POST'])
 def receive_webhook():
-    # Программа берет данные, которые пришли из интернета
-    data = request.json
-    print("Получены данные:", data)  # Выведет данные в консоль, чтобы ты видел
-
-    # Ищем в пришедших данных текст события
-    # Мы ожидаем формат: {"event": "Текст вашего уведомления"}
-    if data and 'event' in data:
-        event_text = data['event']
-        # Вызываем функцию отправки в Telegram
-        send_to_telegram(f"🔔 Новое событие!\n{event_text}")
-        return jsonify({"status": "success"}), 200
-    else:
-        return jsonify({"status": "error", "message": "Неверный формат данных"}), 400
+    data = request.get_json()
+    print(f"Получены данные: {data}")
+    
+    # Извлекаем текст события, если он есть
+    event_text = data.get('event', 'Без описания')
+    
+    # Формируем текст для Telegram
+    text_to_send = f"⚠️ Новое событие!\n{event_text}"
+    
+    # ВНИМАНИЕ: Вызываем отправку
+    send_to_telegram(text_to_send)
+    
+    return {"status": "success"}, 200
 
 
 # Запуск нашего мини-сервера на порту 5000
