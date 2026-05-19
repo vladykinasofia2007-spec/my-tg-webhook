@@ -23,39 +23,8 @@ def init_db():
             chat_id INTEGER PRIMARY KEY
         )
     """)
-    conn.commit()
-    conn.close()
-    
-    #Функция для добавления нового пользователя в базу
-def add_user(chat_id: int):
-    conn = sqlite3.connect("schedule.db")
-    cursor = conn.cursor()
-    cursor.execute("INSERT OR IGNORE INTO users (chat_id) VALUES (?)",(chat_id,))
-    conn.commit()
-    conn.close()
 
-def get_all_users():
-    conn = sqlite3.connect("schedule.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT chat_id FROM users")
-    rows = cursor.fetchall()
-    conn.close()
-    return [row[0] for row in rows]
-
-def get_schedule_by_day(day: str, current_parity: str):
-    conn = sqlite3.connect("schedule.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT pair_time, subject, parity
-        FROM schedule
-        WHERE day_of_week = ? AND (parity = ? OR parity = 'Обе')
-        ORDER BY pair_time
-    """, (day, current_parity))
-    rows = cursor.fetchall()
-    conn.close()
-    return rows        
-    
-    # Расписание ГУАП с учетом четности недель
+     # Расписание ГУАП с учетом четности недель
     test_data = [
         # Вторник
         ("Вторник", "11:10", "Философия (Лекция)", "Нечетная"),
@@ -82,28 +51,40 @@ def get_schedule_by_day(day: str, current_parity: str):
         ("Суббота", "17:00", "Основы программирования (Практика)", "Четная"),
         ("Суббота", "18:40", "Учебная практика (Практика)", "Четная"),
     ]
-    
     cursor.executemany("INSERT INTO schedule (day_of_week, pair_time, subject, parity) VALUES (?, ?, ?, ?)", test_data)
     conn.commit()
     conn.close()
+    
+    #Функция для добавления нового пользователя в базу
+def add_user(chat_id: int):
+    conn = sqlite3.connect("schedule.db")
+    cursor = conn.cursor()
+    cursor.execute("INSERT OR IGNORE INTO users (chat_id) VALUES (?)",(chat_id,))
+    conn.commit()
+    conn.close()
 
-# Изменяем функцию запроса: теперь она фильтрует пары по дню и по текущей четности
+def get_all_users():
+    conn = sqlite3.connect("schedule.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT chat_id FROM users")
+    rows = cursor.fetchall()
+    conn.close()
+    return [row[0] for row in rows]
+
 def get_schedule_by_day(day: str, current_parity: str):
     conn = sqlite3.connect("schedule.db")
     cursor = conn.cursor()
     
-    # Выбираем пары, у которых неделя совпадает с текущей ИЛИ стоит "Обе"
     cursor.execute("""
-        SELECT pair_time, subject, parity 
-        FROM schedule 
+        SELECT pair_time, subject, parity
+        FROM schedule
         WHERE day_of_week = ? AND (parity = ? OR parity = 'Обе')
         ORDER BY pair_time
     """, (day, current_parity))
     
     rows = cursor.fetchall()
     conn.close()
-    return rows
+    return rows        
 
 if __name__ == "__main__":
     init_db()
-    print("База данных SQLite успешно обновлена (добавлена чётность)!")
