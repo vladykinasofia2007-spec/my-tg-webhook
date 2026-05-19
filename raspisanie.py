@@ -3,6 +3,7 @@ import datetime
 from fastapi import FastAPI, Request
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram import Bot, Dispatcher, types, BaseMiddleware
 from database import init_db, get_schedule_by_day, add_user, get_all_users
 
 logging.basicConfig(level=logging.INFO)
@@ -13,6 +14,16 @@ CHAT_ID = 1333034189
 app = FastAPI()
 bot = Bot(token=TELEGRAM_TOKEN)
 dp = Dispatcher()
+
+class AutoRegisterMiddleware(BaseMiddleware):
+    async def __call__(self, handler, event: types.Message, data: dict):
+        if isinstance(event, types.Message) and event.chat:
+            try:
+                add_user(event.chat.id)
+            exept Exception as e:
+            Logging.error(f"Ошибка авторегистрации пользователя: {e}")
+        return await handler(event, data)
+dp.message.middleware(AutoRegisterMiddleware())
 
 init_db()
 
