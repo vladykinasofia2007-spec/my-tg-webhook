@@ -30,9 +30,9 @@ def get_current_parity():
     week_number = datetime.datetime.now().isocalendar()[1]
     
     if week_number % 2 == 0:
-        return "Четная"
-    else:
         return "Нечетная"
+    else:
+        return "Четная"
 
 # Функция для перевода английских дней недели на русский (для datetime)
 def get_russian_day():
@@ -97,9 +97,6 @@ async def get_all_schedule(message: types.Message):
                 for time, subject, _ in pairs:
                     response_text += f"  {time} — {subject}\n"
                 response_text += "\n"
-        
-        if not has_pairs_in_week:
-            response_text += "Пар нет\n\n"
             
     await message.answer(response_text)
 
