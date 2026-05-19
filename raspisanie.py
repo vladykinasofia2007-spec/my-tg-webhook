@@ -161,11 +161,14 @@ async def send_morning_schedule(token: str = None):
         for time, subject, p_type in pairs:
             note = " (каждую неделю)" if p_type == "Обе" else ""
             message_text += f"⏰ {time} — {subject}{note}\n"
-            
-    try:
-        # Отправляем сообщение в твой личный чат Telegram
-        await bot.send_message(chat_id=CHAT_ID, text=message_text)
-        return {"status": "success", "message": "Morning schedule sent"}
-    except Exception as e:
-        logging.error(f"Ошибка утренней отправки: {e}")
-        return {"status": "error", "message": str(e)}
+
+    all_users = get_all_users()
+    sent_count = 0
+
+    for chat_id in all_users:
+        try:
+            await bot.send_message(chat_id=chat_id, text=message_text)
+            sent_count+=1
+        except Exception as e:
+            logging.error(f"Ошибка утренней отправки для пользователя {chat_id}: {e}")
+    return {"status": "success", "message": "Morning schedule sent to {sent_count} users"}
