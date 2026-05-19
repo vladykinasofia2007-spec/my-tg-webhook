@@ -91,12 +91,13 @@ async def get_all_schedule(message: types.Message):
         
         for day in all_days:
             pairs = get_schedule_by_day(day, parity)
+            response_text += f"🔹 {day}:\n"
             if pairs:
                 has_pairs_in_week = True
-                response_text += f"🔹 {day}:\n"
                 for time, subject, _ in pairs:
                     response_text += f"  {time} — {subject}\n"
-                response_text += "\n"
+            else:
+                response_text += " Пар нет\n"
             
     await message.answer(response_text)
 
