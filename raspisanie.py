@@ -163,6 +163,7 @@ async def send_morning_schedule(token: str = None):
             message_text += f"⏰ {time} — {subject}{note}\n"
 
     all_users = get_all_users()
+    print(f"!!! Найденные пользователи в бд: {all_users}")
     sent_count = 0
 
     for chat_id in all_users:
