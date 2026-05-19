@@ -20,7 +20,7 @@ class AutoRegisterMiddleware(BaseMiddleware):
         if isinstance(event, types.Message) and event.chat:
             try:
                 add_user(event.chat.id)
-            exept Exception as e:
+            except Exception as e:
             Logging.error(f"Ошибка авторегистрации пользователя: {e}")
         return await handler(event, data)
 dp.message.middleware(AutoRegisterMiddleware())
