@@ -82,6 +82,8 @@ def get_schedule_by_day(day: str, current_parity: str):
         ("Суббота", "17:00", "Основы программирования (Практика)", "Четная"),
         ("Суббота", "18:40", "Учебная практика (Практика)", "Четная"),
     ]
+
+    cursor.execute("DELETE FROM schedule")
     
     cursor.executemany("INSERT INTO schedule (day_of_week, pair_time, subject, parity) VALUES (?, ?, ?, ?)", test_data)
     conn.commit()
